@@ -407,6 +407,7 @@ class ChatDatabricks(BaseChatModel):
                                 "text": content.text,
                                 "annotations": annotations,
                                 "id": getattr(content, "id", None),
+                                "index": 1,
                             }
                         )
                     elif content.type == "refusal":
@@ -415,6 +416,7 @@ class ChatDatabricks(BaseChatModel):
                                 "type": "refusal",
                                 "refusal": content.refusal,
                                 "id": getattr(content, "id", None),
+                                "index": 1,
                             }
                         )
             elif item.type == "function_call":
@@ -473,9 +475,12 @@ class ChatDatabricks(BaseChatModel):
             ):
                 # For these special types, convert to dict if possible
                 if hasattr(item, "model_dump"):
-                    content_blocks.append(item.model_dump())
+                    block = item.model_dump()
                 else:
-                    content_blocks.append(item)
+                    block = item
+                if isinstance(block, dict) and block.get("type") == "reasoning":
+                    block["index"] = 0
+                content_blocks.append(block)
 
         # Create AI message with combined content and tool calls
         message = AIMessage(
@@ -1250,6 +1255,7 @@ def _convert_responses_api_chunk_to_lc_chunk(
             {
                 "type": "text",
                 "text": chunk.delta,
+                "index": 1,
             }
         )
     elif chunk.type == "response.output_item.done":
@@ -1285,7 +1291,7 @@ def _convert_responses_api_chunk_to_lc_chunk(
                                 ann.model_dump() if hasattr(ann, "model_dump") else ann
                                 for ann in content_item.annotations
                             ]
-                            content.append({"annotations": annotations})
+                            content.append({"annotations": annotations, "index": 1})
                     else:
                         annotations = []
                         if content_item.annotations:
@@ -1300,6 +1306,7 @@ def _convert_responses_api_chunk_to_lc_chunk(
                                 "type": "text",
                                 "text": content_item.text,
                                 "annotations": annotations,
+                                "index": 1,
                             }
                         )
                 elif content_item.type == "refusal":
@@ -1307,6 +1314,7 @@ def _convert_responses_api_chunk_to_lc_chunk(
                         {
                             "type": "refusal",
                             "refusal": content_item.refusal,
+                            "index": 1,
                         }
                     )
         elif item.type in (
@@ -1322,9 +1330,12 @@ def _convert_responses_api_chunk_to_lc_chunk(
         ):
             # Convert item to dictionary for LangChain compatibility
             if hasattr(item, "model_dump"):
-                content.append(item.model_dump())
+                block = item.model_dump()
             else:
-                content.append(item)
+                block = item
+            if isinstance(block, dict) and block.get("type") == "reasoning":
+                block["index"] = 0
+            content.append(block)
     elif chunk.type == "response.created":
         id = chunk.response.id if chunk.response else None
         return AIMessageChunk(content="", id=id)

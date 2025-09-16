@@ -748,7 +748,10 @@ def test_convert_responses_api_chunk_to_lc_chunk_text_delta():
     result = _convert_responses_api_chunk_to_lc_chunk(chunk)
 
     assert isinstance(result, AIMessageChunk)
-    assert result.content == [{"type": "text", "text": "Hello"}]
+    assert isinstance(result.content, list) and len(result.content) == 1
+    assert result.content[0]["type"] == "text"
+    assert result.content[0]["text"] == "Hello"
+    assert result.content[0]["index"] == 1
     assert result.id == "item_123"
 
 
@@ -1083,12 +1086,18 @@ def test_chat_databricks_responses_api_stream():
 
         # Check first chunk
         assert isinstance(chunks[0], AIMessageChunk)
-        assert chunks[0].content == [{"type": "text", "text": "Hello"}]
+        assert isinstance(chunks[0].content, list) and len(chunks[0].content) == 1
+        assert chunks[0].content[0]["type"] == "text"
+        assert chunks[0].content[0]["text"] == "Hello"
+        assert chunks[0].content[0]["index"] == 1
         assert chunks[0].id == "item_123"
 
         # Check second chunk
         assert isinstance(chunks[1], AIMessageChunk)
-        assert chunks[1].content == [{"type": "text", "text": " world"}]
+        assert isinstance(chunks[1].content, list) and len(chunks[1].content) == 1
+        assert chunks[1].content[0]["type"] == "text"
+        assert chunks[1].content[0]["text"] == " world"
+        assert chunks[1].content[0]["index"] == 1
         assert chunks[1].id == "item_123"
 
 
